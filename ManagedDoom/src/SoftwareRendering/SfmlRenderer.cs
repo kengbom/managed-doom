@@ -55,8 +55,8 @@ namespace ManagedDoom.SoftwareRendering
 
         private byte[] sfmlTextureData;
         private SFML.Graphics.Texture sfmlTexture;
-        private SFML.Graphics.Sprite sfmlSprite;
         private SFML.Graphics.RenderStates sfmlStates;
+        private SFML.Graphics.Vertex[] sfmlVertices;
 
         private MenuRenderer menu;
         private ThreeDRenderer threeD;
@@ -106,16 +106,36 @@ namespace ManagedDoom.SoftwareRendering
                 sfmlTextureData = new byte[4 * screen.Width * screen.Height];
 
                 sfmlTexture = new SFML.Graphics.Texture((uint)sfmlTextureWidth, (uint)sfmlTextureHeight);
-                sfmlSprite = new SFML.Graphics.Sprite(sfmlTexture);
 
-                sfmlSprite.Position = new Vector2f(0, 0);
-                sfmlSprite.Rotation = 90;
+                sfmlStates = new RenderStates();
+                sfmlStates.Texture = sfmlTexture;
+                sfmlStates.BlendMode = BlendMode.None;
+                sfmlStates.Transform = Transform.Identity;
+
                 var scaleX = (float)sfmlWindowWidth / screen.Width;
                 var scaleY = (float)sfmlWindowHeight / screen.Height;
-                sfmlSprite.Scale = new Vector2f(scaleY, -scaleX);
-                sfmlSprite.TextureRect = new IntRect(0, 0, screen.Height, screen.Width);
 
-                sfmlStates = new RenderStates(BlendMode.None);
+                sfmlVertices = new SFML.Graphics.Vertex[4];
+
+                sfmlVertices[0] = new SFML.Graphics.Vertex(
+                    new Vector2f(0, 0),
+                    Color.White,
+                    new Vector2f(0, 0));
+
+                sfmlVertices[1] = new SFML.Graphics.Vertex(
+                    new Vector2f(0, sfmlWindowHeight),
+                    Color.White,
+                    new Vector2f(screen.Height, 0));
+
+                sfmlVertices[2] = new SFML.Graphics.Vertex(
+                    new Vector2f(sfmlWindowWidth, 0),
+                    Color.White,
+                    new Vector2f(0, screen.Width));
+
+                sfmlVertices[3] = new SFML.Graphics.Vertex(
+                    new Vector2f(sfmlWindowWidth, sfmlWindowHeight),
+                    Color.White,
+                    new Vector2f(screen.Height, screen.Width));
 
                 menu = new MenuRenderer(resource.Wad, screen);
                 threeD = new ThreeDRenderer(resource, screen, config.video_gamescreensize);
@@ -298,7 +318,7 @@ namespace ManagedDoom.SoftwareRendering
                 p[i] = colors[screenData[i]];
             }
             sfmlTexture.Update(sfmlTextureData, (uint)screen.Height, (uint)screen.Width, 0, 0);
-            sfmlWindow.Draw(sfmlSprite, sfmlStates);
+            sfmlWindow.Draw(sfmlVertices, PrimitiveType.TriangleStrip, sfmlStates);
             sfmlWindow.Display();
         }
 
@@ -356,12 +376,6 @@ namespace ManagedDoom.SoftwareRendering
         public void Dispose()
         {
             Console.WriteLine("Shutdown renderer.");
-
-            if (sfmlSprite != null)
-            {
-                sfmlSprite.Dispose();
-                sfmlSprite = null;
-            }
 
             if (sfmlTexture != null)
             {
