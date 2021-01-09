@@ -45,9 +45,6 @@ namespace ManagedDoom.SoftwareRendering
         private RenderWindow sfmlWindow;
         private Palette palette;
 
-        private int sfmlWindowWidth;
-        private int sfmlWindowHeight;
-
         private DrawScreen screen;
 
         private int sfmlTextureWidth;
@@ -55,8 +52,8 @@ namespace ManagedDoom.SoftwareRendering
 
         private byte[] sfmlTextureData;
         private SFML.Graphics.Texture sfmlTexture;
-        private SFML.Graphics.RenderStates sfmlStates;
-        private SFML.Graphics.Vertex[] sfmlVertices;
+        private SFML.Graphics.RenderStates sfmlStatesMain;
+        private SFML.Graphics.RenderStates sfmlStatesBlackBars;
 
         private MenuRenderer menu;
         private ThreeDRenderer threeD;
@@ -73,6 +70,9 @@ namespace ManagedDoom.SoftwareRendering
         private int wipeHeight;
         private byte[] wipeBuffer;
 
+        private SFML.Graphics.Vertex[] sfmlVerticesMain;
+        private SFML.Graphics.Vertex[][] sfmlVerticesBlackBars;
+
         public SfmlRenderer(Config config, RenderWindow window, CommonResource resource)
         {
             try
@@ -86,9 +86,6 @@ namespace ManagedDoom.SoftwareRendering
 
                 sfmlWindow = window;
                 palette = resource.Palette;
-
-                sfmlWindowWidth = (int)window.Size.X;
-                sfmlWindowHeight = (int)window.Size.Y;
 
                 if (config.video_highresolution)
                 {
@@ -107,35 +104,14 @@ namespace ManagedDoom.SoftwareRendering
 
                 sfmlTexture = new SFML.Graphics.Texture((uint)sfmlTextureWidth, (uint)sfmlTextureHeight);
 
-                sfmlStates = new RenderStates();
-                sfmlStates.Texture = sfmlTexture;
-                sfmlStates.BlendMode = BlendMode.None;
-                sfmlStates.Transform = Transform.Identity;
+                sfmlStatesMain = new RenderStates();
+                sfmlStatesMain.Texture = sfmlTexture;
+                sfmlStatesMain.BlendMode = BlendMode.None;
+                sfmlStatesMain.Transform = Transform.Identity;
 
-                var scaleX = (float)sfmlWindowWidth / screen.Width;
-                var scaleY = (float)sfmlWindowHeight / screen.Height;
-
-                sfmlVertices = new SFML.Graphics.Vertex[4];
-
-                sfmlVertices[0] = new SFML.Graphics.Vertex(
-                    new Vector2f(0, 0),
-                    Color.White,
-                    new Vector2f(0, 0));
-
-                sfmlVertices[1] = new SFML.Graphics.Vertex(
-                    new Vector2f(0, sfmlWindowHeight),
-                    Color.White,
-                    new Vector2f(screen.Height, 0));
-
-                sfmlVertices[2] = new SFML.Graphics.Vertex(
-                    new Vector2f(sfmlWindowWidth, 0),
-                    Color.White,
-                    new Vector2f(0, screen.Width));
-
-                sfmlVertices[3] = new SFML.Graphics.Vertex(
-                    new Vector2f(sfmlWindowWidth, sfmlWindowHeight),
-                    Color.White,
-                    new Vector2f(screen.Height, screen.Width));
+                sfmlStatesBlackBars = new RenderStates();
+                sfmlStatesBlackBars.BlendMode = BlendMode.None;
+                sfmlStatesBlackBars.Transform = Transform.Identity;
 
                 menu = new MenuRenderer(resource.Wad, screen);
                 threeD = new ThreeDRenderer(resource, screen, config.video_gamescreensize);
@@ -155,6 +131,10 @@ namespace ManagedDoom.SoftwareRendering
 
                 palette.ResetColors(gammaCorrectionParameters[config.video_gammacorrection]);
 
+                ResetScreenSize((int)window.Size.X, (int)window.Size.Y);
+
+                sfmlWindow.Resized += SfmlWindow_Resized;
+
                 Console.WriteLine("OK");
             }
             catch (Exception e)
@@ -163,6 +143,38 @@ namespace ManagedDoom.SoftwareRendering
                 Dispose();
                 ExceptionDispatchInfo.Throw(e);
             }
+        }
+
+        private void ResetScreenSize(int width, int height)
+        {
+            sfmlWindow.SetView(new View(new FloatRect(0, 0, width, height)));
+
+            sfmlVerticesMain = new SFML.Graphics.Vertex[4];
+
+            sfmlVerticesMain[0] = new SFML.Graphics.Vertex(
+                new Vector2f(0, 0),
+                Color.White,
+                new Vector2f(0, 0));
+
+            sfmlVerticesMain[1] = new SFML.Graphics.Vertex(
+                new Vector2f(0, height),
+                Color.White,
+                new Vector2f(screen.Height, 0));
+
+            sfmlVerticesMain[2] = new SFML.Graphics.Vertex(
+                new Vector2f(width, 0),
+                Color.White,
+                new Vector2f(0, screen.Width));
+
+            sfmlVerticesMain[3] = new SFML.Graphics.Vertex(
+                new Vector2f(width, height),
+                Color.White,
+                new Vector2f(screen.Height, screen.Width));
+        }
+
+        private void SfmlWindow_Resized(object sender, SFML.Window.SizeEventArgs e)
+        {
+            ResetScreenSize((int)e.Width, (int)e.Height);
         }
 
         public void RenderApplication(DoomApplication app)
@@ -318,7 +330,7 @@ namespace ManagedDoom.SoftwareRendering
                 p[i] = colors[screenData[i]];
             }
             sfmlTexture.Update(sfmlTextureData, (uint)screen.Height, (uint)screen.Width, 0, 0);
-            sfmlWindow.Draw(sfmlVertices, PrimitiveType.TriangleStrip, sfmlStates);
+            sfmlWindow.Draw(sfmlVerticesMain, PrimitiveType.TriangleStrip, sfmlStatesMain);
             sfmlWindow.Display();
         }
 

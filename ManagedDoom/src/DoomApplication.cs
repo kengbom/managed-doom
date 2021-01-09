@@ -74,7 +74,7 @@ namespace ManagedDoom
                 config.video_screenwidth = Math.Clamp(config.video_screenwidth, 320, 3200);
                 config.video_screenheight = Math.Clamp(config.video_screenheight, 200, 2000);
                 var videoMode = new VideoMode((uint)config.video_screenwidth, (uint)config.video_screenheight);
-                var style = Styles.Close | Styles.Titlebar;
+                var style = Styles.Close | Styles.Titlebar | Styles.Resize;
                 if (config.video_fullscreen)
                 {
                     style = Styles.Fullscreen;
