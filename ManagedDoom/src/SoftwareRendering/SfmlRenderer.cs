@@ -149,25 +149,93 @@ namespace ManagedDoom.SoftwareRendering
         {
             sfmlWindow.SetView(new View(new FloatRect(0, 0, width, height)));
 
+            float dstX;
+            float dstY;
+            float dstWidth;
+            float dstHeight;
+
+            var scaleX = (float)width / screen.Width;
+            var scaleY = (float)height / screen.Height;
+
+            if (Math.Abs(scaleX - scaleY) < 1.0E-6)
+            {
+                dstX = 0;
+                dstY = 0;
+                dstWidth = width;
+                dstHeight = height;
+
+                sfmlVerticesBlackBars = null;
+            }
+            else if (scaleX > scaleY)
+            {
+                dstX = (width - scaleY * screen.Width) / 2;
+                dstY = 0;
+                dstWidth = scaleY * screen.Width;
+                dstHeight = height;
+
+                sfmlVerticesBlackBars = new SFML.Graphics.Vertex[][]
+                {
+                    new SFML.Graphics.Vertex[]
+                    {
+                        new SFML.Graphics.Vertex(new Vector2f(0, 0), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(0, height), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(dstX, 0), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(dstX, height), Color.Black)
+                    },
+                    new SFML.Graphics.Vertex[]
+                    {
+                        new SFML.Graphics.Vertex(new Vector2f(dstX + dstWidth, 0), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(dstX + dstWidth, height), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(width, 0), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(width, height), Color.Black)
+                    }
+                };
+            }
+            else
+            {
+                dstX = 0;
+                dstY = (height - scaleX * screen.Height) / 2;
+                dstWidth = width;
+                dstHeight = scaleX * screen.Height;
+
+                sfmlVerticesBlackBars = new SFML.Graphics.Vertex[][]
+                {
+                    new SFML.Graphics.Vertex[]
+                    {
+                        new SFML.Graphics.Vertex(new Vector2f(0, 0), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(0, dstY), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(width, 0), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(width, dstY), Color.Black)
+                    },
+                    new SFML.Graphics.Vertex[]
+                    {
+                        new SFML.Graphics.Vertex(new Vector2f(0, dstY + dstHeight), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(0, height), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(width, dstY + dstHeight), Color.Black),
+                        new SFML.Graphics.Vertex(new Vector2f(width, height), Color.Black)
+                    }
+                };
+            }
+
             sfmlVerticesMain = new SFML.Graphics.Vertex[4];
 
             sfmlVerticesMain[0] = new SFML.Graphics.Vertex(
-                new Vector2f(0, 0),
+                new Vector2f(dstX, dstY),
                 Color.White,
                 new Vector2f(0, 0));
 
             sfmlVerticesMain[1] = new SFML.Graphics.Vertex(
-                new Vector2f(0, height),
+                new Vector2f(dstX, dstY + dstHeight),
                 Color.White,
                 new Vector2f(screen.Height, 0));
 
             sfmlVerticesMain[2] = new SFML.Graphics.Vertex(
-                new Vector2f(width, 0),
+                new Vector2f(dstX + dstWidth, dstY),
                 Color.White,
                 new Vector2f(0, screen.Width));
 
             sfmlVerticesMain[3] = new SFML.Graphics.Vertex(
-                new Vector2f(width, height),
+                new Vector2f(dstX + dstWidth, dstY + dstHeight),
                 Color.White,
                 new Vector2f(screen.Height, screen.Width));
         }
@@ -331,6 +399,13 @@ namespace ManagedDoom.SoftwareRendering
             }
             sfmlTexture.Update(sfmlTextureData, (uint)screen.Height, (uint)screen.Width, 0, 0);
             sfmlWindow.Draw(sfmlVerticesMain, PrimitiveType.TriangleStrip, sfmlStatesMain);
+
+            if (sfmlVerticesBlackBars != null)
+            {
+                sfmlWindow.Draw(sfmlVerticesBlackBars[0], PrimitiveType.TriangleStrip, sfmlStatesBlackBars);
+                sfmlWindow.Draw(sfmlVerticesBlackBars[1], PrimitiveType.TriangleStrip, sfmlStatesBlackBars);
+            }
+
             sfmlWindow.Display();
         }
 
