@@ -29,16 +29,18 @@ namespace ManagedDoom
 
         public static void ReadFiles(params string[] fileNames)
         {
+            string lastFileName = null;
             try
             {
                 // Ensure the static members are initialized.
                 DoomInfo.Strings.PRESSKEY.GetHashCode();
 
-                Console.Write("Apply DeHackEd patches: ");
+                Console.Write("Load DeHackEd patches: ");
 
                 foreach (var fileName in fileNames)
                 {
-                    ReadFile(fileName);
+                    lastFileName = fileName;
+                    ProcessLines(File.ReadLines(fileName));
                 }
 
                 Console.WriteLine("OK (" + string.Join(", ", fileNames.Select(x => Path.GetFileName(x))) + ")");
@@ -46,11 +48,48 @@ namespace ManagedDoom
             catch (Exception e)
             {
                 Console.WriteLine("Failed");
-                ExceptionDispatchInfo.Throw(e);
+                throw new Exception("Failed to apply DeHackEd patch: " + lastFileName, e);
             }
         }
 
-        private static void ReadFile(string fileName)
+        public static void ReadDeHackEdLump(Wad wad)
+        {
+            var lump = wad.GetLumpNumber("DEHACKED");
+
+            if (lump != -1)
+            {
+                // Ensure the static members are initialized.
+                DoomInfo.Strings.PRESSKEY.GetHashCode();
+
+                try
+                {
+                    Console.Write("Load DeHackEd patch from WAD: ");
+
+                    ProcessLines(ReadLines(wad.ReadLump(lump)));
+
+                    Console.WriteLine("OK");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed");
+                    throw new Exception("Failed to apply DeHackEd patch!", e);
+                }
+            }
+        }
+
+        private static IEnumerable<string> ReadLines(byte[] data)
+        {
+            using (var ms = new MemoryStream(data))
+            using (var sr = new StreamReader(ms))
+            {
+                for (var line = sr.ReadLine(); line != null; line = sr.ReadLine())
+                {
+                    yield return line;
+                }
+            }
+        }
+
+        private static void ProcessLines(IEnumerable<string> lines)
         {
             if (sourcePointerTable == null)
             {
@@ -63,10 +102,19 @@ namespace ManagedDoom
                 }
             }
 
+            var lineNumber = 0;
             var data = new List<string>();
-            var last = Block.None;
-            foreach (var line in File.ReadLines(fileName))
+            var lastBlock = Block.None;
+            var lastBlockLine = 0;
+            foreach (var line in lines)
             {
+                lineNumber++;
+
+                if (line.Length > 0 && line[0] == '#')
+                {
+                    continue;
+                }
+
                 var split = line.Split(' ');
                 var blockType = GetBlockType(split);
                 if (blockType == Block.None)
@@ -75,49 +123,63 @@ namespace ManagedDoom
                 }
                 else
                 {
-                    ProcessBlock(last, data);
+                    ProcessBlock(lastBlock, data, lastBlockLine);
                     data.Clear();
                     data.Add(line);
-                    last = blockType;
+                    lastBlock = blockType;
+                    lastBlockLine = lineNumber;
                 }
             }
-            ProcessBlock(last, data);
+            ProcessBlock(lastBlock, data, lastBlockLine);
         }
 
-        private static void ProcessBlock(Block type, List<string> data)
+        private static void ProcessBlock(Block type, List<string> data, int lineNumber)
         {
-            switch (type)
+            try
             {
-                case Block.Thing:
-                    ProcessThingBlock(data);
-                    break;
-                case Block.Frame:
-                    ProcessFrameBlock(data);
-                    break;
-                case Block.Pointer:
-                    ProcessPointerBlock(data);
-                    break;
-                case Block.Sound:
-                    ProcessSoundBlock(data);
-                    break;
-                case Block.Ammo:
-                    ProcessAmmoBlock(data);
-                    break;
-                case Block.Weapon:
-                    ProcessWeaponBlock(data);
-                    break;
-                case Block.Cheat:
-                    ProcessCheatBlock(data);
-                    break;
-                case Block.Misc:
-                    ProcessMiscBlock(data);
-                    break;
-                case Block.Text:
-                    ProcessTextBlock(data);
-                    break;
-                case Block.Sprite:
-                    ProcessSpriteBlock(data);
-                    break;
+                switch (type)
+                {
+                    case Block.Thing:
+                        ProcessThingBlock(data);
+                        break;
+                    case Block.Frame:
+                        ProcessFrameBlock(data);
+                        break;
+                    case Block.Pointer:
+                        ProcessPointerBlock(data);
+                        break;
+                    case Block.Sound:
+                        ProcessSoundBlock(data);
+                        break;
+                    case Block.Ammo:
+                        ProcessAmmoBlock(data);
+                        break;
+                    case Block.Weapon:
+                        ProcessWeaponBlock(data);
+                        break;
+                    case Block.Cheat:
+                        ProcessCheatBlock(data);
+                        break;
+                    case Block.Misc:
+                        ProcessMiscBlock(data);
+                        break;
+                    case Block.Text:
+                        ProcessTextBlock(data);
+                        break;
+                    case Block.Sprite:
+                        ProcessSpriteBlock(data);
+                        break;
+                    case Block.BexStrings:
+                        ProcessBexStringsBlock(data);
+                        break;
+                    case Block.BexPars:
+                        ProcessBexParsBlock(data);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Failed to process block: " + type + " (line " + lineNumber + ")", e);
             }
         }
 
@@ -280,11 +342,89 @@ namespace ManagedDoom
                 }
             }
 
-            DoomString.Replace(sb1.ToString(), sb2.ToString());
+            DoomString.ReplaceByValue(sb1.ToString(), sb2.ToString());
         }
 
         private static void ProcessSpriteBlock(List<string> data)
         {
+        }
+
+        private static void ProcessBexStringsBlock(List<string> data)
+        {
+            string name = null;
+            StringBuilder sb = null;
+            foreach (var line in data.Skip(1))
+            {
+                if (name == null)
+                {
+                    var eqPos = line.IndexOf('=');
+                    if (eqPos != -1)
+                    {
+                        var left = line.Substring(0, eqPos).Trim();
+                        var right = line.Substring(eqPos + 1).Trim().Replace("\\n", "\n");
+                        if (right.Last() != '\\')
+                        {
+                            DoomString.ReplaceByName(left, right);
+                        }
+                        else
+                        {
+                            name = left;
+                            sb = new StringBuilder();
+                            sb.Append(right, 0, right.Length - 1);
+                        }
+                    }
+                }
+                else
+                {
+                    var value = line.Trim().Replace("\\n", "\n"); ;
+                    if (value.Last() != '\\')
+                    {
+                        sb.Append(value);
+                        DoomString.ReplaceByName(name, sb.ToString());
+                        name = null;
+                        sb = null;
+                    }
+                    else
+                    {
+                        sb.Append(value, 0, value.Length - 1);
+                    }
+                }
+            }
+        }
+
+        private static void ProcessBexParsBlock(List<string> data)
+        {
+            foreach (var line in data.Skip(1))
+            {
+                var split = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (split.Length >= 3 && split[0] == "par")
+                {
+                    var parsed = new List<int>();
+                    foreach (var value in split.Skip(1))
+                    {
+                        int result;
+                        if (int.TryParse(value, out result))
+                        {
+                            parsed.Add(result);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    if (parsed.Count == 2)
+                    {
+                        DoomInfo.ParTimes.Doom2[parsed[0] - 1] = parsed[1];
+                    }
+
+                    if (parsed.Count >= 3)
+                    {
+                        DoomInfo.ParTimes.Doom1[parsed[0] - 1][parsed[1] - 1] = parsed[2];
+                    }
+                }
+            }
         }
 
         private static Block GetBlockType(string[] split)
@@ -328,6 +468,14 @@ namespace ManagedDoom
             else if (IsSpriteBlockStart(split))
             {
                 return Block.Sprite;
+            }
+            else if (IsBexStringsBlockStart(split))
+            {
+                return Block.BexStrings;
+            }
+            else if (IsBexParsBlockStart(split))
+            {
+                return Block.BexPars;
             }
             else
             {
@@ -535,6 +683,30 @@ namespace ManagedDoom
             return true;
         }
 
+        private static bool IsBexStringsBlockStart(string[] split)
+        {
+            if (split[0] == "[STRINGS]")
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static bool IsBexParsBlockStart(string[] split)
+        {
+            if (split[0] == "[PARS]")
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         private static bool IsNumber(string value)
         {
             foreach (var ch in value)
@@ -560,17 +732,6 @@ namespace ManagedDoom
                 }
             }
             return dic;
-        }
-
-        private static string GetString(Dictionary<string, string> dic, string key, string defaultValue)
-        {
-            string value;
-            if (dic.TryGetValue(key, out value))
-            {
-                return value;
-            }
-
-            return defaultValue;
         }
 
         private static int GetInt(Dictionary<string, string> dic, string key, int defaultValue)
@@ -602,7 +763,9 @@ namespace ManagedDoom
             Cheat,
             Misc,
             Text,
-            Sprite
+            Sprite,
+            BexStrings,
+            BexPars
         }
     }
 }
