@@ -131,7 +131,7 @@ namespace ManagedDoom.SoftwareRendering
 
                 palette.ResetColors(gammaCorrectionParameters[config.video_gammacorrection]);
 
-                ResetScreenSize((int)window.Size.X, (int)window.Size.Y);
+                ResetScreenSize((int)window.Size.X, (int)window.Size.Y, config.video_aspectratio);
 
                 sfmlWindow.Resized += SfmlWindow_Resized;
 
@@ -145,17 +145,36 @@ namespace ManagedDoom.SoftwareRendering
             }
         }
 
-        private void ResetScreenSize(int width, int height)
+        private void ResetScreenSize(int width, int height, AspectRatio aspectRatio)
         {
             sfmlWindow.SetView(new View(new FloatRect(0, 0, width, height)));
+
+            int aspectRatioX;
+            int aspectRatioY;
+
+            switch (aspectRatio)
+            {
+                case AspectRatio.FourThree:
+                    aspectRatioX = 4;
+                    aspectRatioY = 3;
+                    break;
+                case AspectRatio.EightFive:
+                    aspectRatioX = 8;
+                    aspectRatioY = 5;
+                    break;
+                default:
+                    aspectRatioX = (int)sfmlWindow.Size.X;
+                    aspectRatioY = (int)sfmlWindow.Size.Y;
+                    break;
+            }
 
             float dstX;
             float dstY;
             float dstWidth;
             float dstHeight;
 
-            var scaleX = (float)width / screen.Width;
-            var scaleY = (float)height / screen.Height;
+            var scaleX = (float)width / aspectRatioX;
+            var scaleY = (float)height / aspectRatioY;
 
             if (Math.Abs(scaleX - scaleY) < 1.0E-6)
             {
@@ -168,9 +187,9 @@ namespace ManagedDoom.SoftwareRendering
             }
             else if (scaleX > scaleY)
             {
-                dstX = (width - scaleY * screen.Width) / 2;
+                dstX = (width - scaleY * aspectRatioX) / 2;
                 dstY = 0;
-                dstWidth = scaleY * screen.Width;
+                dstWidth = scaleY * aspectRatioX;
                 dstHeight = height;
 
                 sfmlVerticesBlackBars = new SFML.Graphics.Vertex[][]
@@ -194,9 +213,9 @@ namespace ManagedDoom.SoftwareRendering
             else
             {
                 dstX = 0;
-                dstY = (height - scaleX * screen.Height) / 2;
+                dstY = (height - scaleX * aspectRatioY) / 2;
                 dstWidth = width;
-                dstHeight = scaleX * screen.Height;
+                dstHeight = scaleX * aspectRatioY;
 
                 sfmlVerticesBlackBars = new SFML.Graphics.Vertex[][]
                 {
@@ -242,7 +261,7 @@ namespace ManagedDoom.SoftwareRendering
 
         private void SfmlWindow_Resized(object sender, SFML.Window.SizeEventArgs e)
         {
-            ResetScreenSize((int)e.Width, (int)e.Height);
+            ResetScreenSize((int)e.Width, (int)e.Height, config.video_aspectratio);
         }
 
         public void RenderApplication(DoomApplication app)
