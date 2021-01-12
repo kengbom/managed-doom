@@ -17,7 +17,7 @@
 
 using System;
 using System.Runtime.ExceptionServices;
-using SFML.Audio;
+using SFML.AudioFix;
 using SFML.System;
 
 namespace ManagedDoom.Audio

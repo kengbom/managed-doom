@@ -18,7 +18,7 @@
 using System;
 using System.IO;
 using System.Runtime.ExceptionServices;
-using SFML.Audio;
+using SFML.AudioFix;
 using SFML.System;
 using AudioSynthesis.Midi;
 using AudioSynthesis.Sequencer;
