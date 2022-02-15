@@ -16,11 +16,15 @@
 
 
 using System;
+using System.Collections.Generic;
 
 namespace ManagedDoom
 {
-    public static class ApplicationInfo
+    public interface IFlatLookup : IReadOnlyList<Flat>
     {
-        public static readonly string Title = "Managed Doom v1.2f";
+        int GetNumber(string name);
+        public Flat this[string name] { get; }
+        public int SkyFlatNumber { get; }
+        public Flat SkyFlat { get; }
     }
 }

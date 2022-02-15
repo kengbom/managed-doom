@@ -16,11 +16,10 @@
 
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using ManagedDoom.Audio;
-using SFML.Window;
 
 namespace ManagedDoom
 {
@@ -45,34 +44,6 @@ namespace ManagedDoom
         public static string GetConfigPath()
         {
             return Path.Combine(GetExeDirectory(), "managed-doom.cfg");
-        }
-
-        public static VideoMode GetDefaultVideoMode()
-        {
-            var desktop = VideoMode.DesktopMode;
-
-            var baseWidth = 640;
-            var baseHeight = 400;
-
-            var currentWidth = baseWidth;
-            var currentHeight = baseHeight;
-
-            while (true)
-            {
-                var nextWidth = currentWidth + baseWidth;
-                var nextHeight = currentHeight + baseHeight;
-
-                if (nextWidth >= 0.9 * desktop.Width ||
-                    nextHeight >= 0.9 * desktop.Height)
-                {
-                    break;
-                }
-
-                currentWidth = nextWidth;
-                currentHeight = nextHeight;
-            }
-
-            return new VideoMode((uint)currentWidth, (uint)currentHeight);
         }
 
         public static string GetDefaultIwadPath()
@@ -106,18 +77,28 @@ namespace ManagedDoom
             return iwadNames.Contains(name);
         }
 
-        public static SfmlMusic GetSfmlMusicInstance(Config config, Wad wad)
+        public static string[] GetWadPaths(CommandLineArgs args)
         {
-            var sfPath = Path.Combine(GetExeDirectory(), config.audio_soundfont);
-            if (File.Exists(sfPath))
+            var wadPaths = new List<string>();
+
+            if (args.iwad.Present)
             {
-                return new SfmlMusic(config, wad, sfPath);
+                wadPaths.Add(args.iwad.Value);
             }
             else
             {
-                Console.WriteLine("SoundFont '" + config.audio_soundfont + "' was not found!");
-                return null;
+                wadPaths.Add(ConfigUtilities.GetDefaultIwadPath());
             }
+
+            if (args.file.Present)
+            {
+                foreach (var path in args.file.Value)
+                {
+                    wadPaths.Add(path);
+                }
+            }
+
+            return wadPaths.ToArray();
         }
     }
 }

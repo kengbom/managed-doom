@@ -19,8 +19,11 @@ using System;
 
 namespace ManagedDoom
 {
-    public static class ApplicationInfo
+    public enum DoomState
     {
-        public static readonly string Title = "Managed Doom v1.2f";
+        None,
+        Opening,
+        DemoPlayback,
+        Game
     }
 }

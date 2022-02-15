@@ -21,8 +21,9 @@ using System.Runtime.ExceptionServices;
 using SFML.Audio;
 using SFML.System;
 using MeltySynth;
+using ManagedDoom.Audio;
 
-namespace ManagedDoom.Audio
+namespace ManagedDoom.SFML
 {
     public sealed class SfmlMusic : IMusic, IDisposable
     {
@@ -161,6 +162,7 @@ namespace ManagedDoom.Audio
 
                 var settings = new SynthesizerSettings(MusDecoder.SampleRate);
                 settings.BlockSize = MusDecoder.BlockLength;
+                settings.EnableReverbAndChorus = config.audio_musiceffect;
                 synthesizer = new Synthesizer(sfPath, settings);
 
                 batchLength = (int)Math.Round(0.05 * MusDecoder.SampleRate);

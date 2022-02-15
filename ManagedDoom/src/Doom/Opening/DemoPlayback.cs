@@ -30,7 +30,7 @@ namespace ManagedDoom
         private Stopwatch stopwatch;
         private int frameCount;
 
-        public DemoPlayback(CommonResource resource, GameOptions options, string demoName)
+        public DemoPlayback(CommandLineArgs args, GameContent content, GameOptions options, string demoName)
         {
             if (File.Exists(demoName))
             {
@@ -43,19 +43,24 @@ namespace ManagedDoom
             else
             {
                 var lumpName = demoName.ToUpper();
-                if (resource.Wad.GetLumpNumber(lumpName) == -1)
+                if (content.Wad.GetLumpNumber(lumpName) == -1)
                 {
                     throw new Exception("Demo '" + demoName + "' was not found!");
                 }
-                demo = new Demo(resource.Wad.ReadLump(lumpName));
+                demo = new Demo(content.Wad.ReadLump(lumpName));
             }
 
             demo.Options.GameVersion = options.GameVersion;
             demo.Options.GameMode = options.GameMode;
             demo.Options.MissionPack = options.MissionPack;
-            demo.Options.Renderer = options.Renderer;
+            demo.Options.Video = options.Video;
             demo.Options.Sound = options.Sound;
             demo.Options.Music = options.Music;
+
+            if (args.solonet.Present)
+            {
+                demo.Options.NetGame = true;
+            }
 
             cmds = new TicCmd[Player.MaxPlayerCount];
             for (var i = 0; i < Player.MaxPlayerCount; i++)
@@ -63,7 +68,7 @@ namespace ManagedDoom
                 cmds[i] = new TicCmd();
             }
 
-            game = new DoomGame(resource, demo.Options);
+            game = new DoomGame(content, demo.Options);
             game.DeferedInitNew();
 
             stopwatch = new Stopwatch();

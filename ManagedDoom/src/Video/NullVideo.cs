@@ -17,57 +17,76 @@
 
 using System;
 
-namespace ManagedDoom.UserInput
+namespace ManagedDoom.Video
 {
-    public sealed class NullUserInput : IUserInput
+    public class NullVideo : IVideo
     {
-        private static NullUserInput instance;
+        private static NullVideo instance;
 
-        public static NullUserInput GetInstance()
+        public static NullVideo GetInstance()
         {
             if (instance == null)
             {
-                instance = new NullUserInput();
+                instance = new NullVideo();
             }
 
             return instance;
         }
 
-        public void BuildTicCmd(TicCmd cmd)
-        {
-            cmd.Clear();
-        }
-
-        public void Reset()
+        public void Render(Doom doom)
         {
         }
 
-        public void GrabMouse()
+        public void InitializeWipe()
         {
         }
 
-        public void ReleaseMouse()
+        public bool HasFocus()
         {
+            return true;
         }
 
-        public int MaxMouseSensitivity
+        public int MaxWindowSize => ThreeDRenderer.MaxScreenSize;
+
+        public int WindowSize
         {
             get
             {
-                return 9;
-            }
-        }
-
-        public int MouseSensitivity
-        {
-            get
-            {
-                return 3;
+                return 7;
             }
 
             set
             {
             }
         }
+
+        public bool DisplayMessage
+        {
+            get
+            {
+                return true;
+            }
+
+            set
+            {
+            }
+        }
+
+        public int MaxGammaCorrectionLevel => 10;
+
+        public int GammaCorrectionLevel
+        {
+            get
+            {
+                return 2;
+            }
+
+            set
+            {
+            }
+        }
+
+        public int WipeBandCount => 321;
+        public int WipeHeight => 200;
     }
 }

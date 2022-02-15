@@ -17,10 +17,23 @@
 
 using System;
 
-namespace ManagedDoom
+namespace ManagedDoom.Video
 {
-    public static class ApplicationInfo
+    public interface IVideo
     {
-        public static readonly string Title = "Managed Doom v1.2f";
+        public void Render(Doom doom);
+        public void InitializeWipe();
+        public bool HasFocus();
+
+        public int MaxWindowSize { get; }
+        public int WindowSize { get; set; }
+
+        public bool DisplayMessage { get; set; }
+
+        public int MaxGammaCorrectionLevel { get; }
+        public int GammaCorrectionLevel { get; set; }
+
+        public int WipeBandCount { get; }
+        public int WipeHeight { get; }
     }
 }
