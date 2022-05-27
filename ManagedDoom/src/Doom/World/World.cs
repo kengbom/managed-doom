@@ -64,10 +64,6 @@ namespace ManagedDoom
         // See SubstNullMobj().
         private Mobj dummy;
 
-        public World(GameContent resorces, GameOptions options) : this(resorces, options, null)
-        {
-        }
-
         public World(GameContent resorces, GameOptions options, DoomGame game)
         {
             this.options = options;
@@ -375,20 +371,7 @@ namespace ManagedDoom
             set => levelTime = value;
         }
 
-        public int GameTic
-        {
-            get
-            {
-                if (game != null)
-                {
-                    return game.GameTic;
-                }
-                else
-                {
-                    return levelTime;
-                }
-            }
-        }
+        public int GameTic => game.GameTic;
 
         public bool SecretExit => secretExit;
 
